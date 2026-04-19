@@ -210,7 +210,7 @@ const PRODUCTS=[
     {id:'black',name:'ブラック',dot:'#1c1c1c',border:'#555'},
     {id:'beige',name:'ベージュ',dot:'#c8a97e',border:'#a07050'},
     {id:'hgreen',name:'ハンターグリーン',dot:'#3a5a3a',border:'#5a8a5a'},
-    {id:'lgreen',name:'リンカーングリーン',dot:'#6b8c5a',border:'#8aad79'},
+    {id:'lgreen',name:'リンカーングリーン',dot:'#6b8c5a',border:'#8aad79',extraSizes:[{w:'W32',l:'L34'}]},
     {id:'dbrown',name:'ダークブラウン',dot:'#4a2e1a',border:'#7a5a3a'},
     {id:'white',name:'ホワイト',dot:'#e8e8e8',border:'#bbb'},
   ]},
@@ -224,6 +224,10 @@ const SIZES=[
   {w:'W36',l:'L30'},{w:'W36',l:'L32'},{w:'W38',l:'L30'},{w:'W38',l:'L32'},
 ];
 const WAISTS=['W30','W32','W33','W34','W36','W38'];
+function getSizes(pid,cid){
+  const p=PRODUCTS.find(x=>x.id===pid),c=p&&p.colors.find(x=>x.id===cid);
+  return [...SIZES,...((c&&c.extraSizes)||[])];
+}
 
 let fbBase='',roomCode='',inventory={},hiddenMap={};
 let openCards={},hideModes={},modalData=null,currentView='inventory';
@@ -323,8 +327,8 @@ const isHidden=(p,c,w,l)=>!!hiddenMap[HK(p,c,w,l)];
 function setStock(p,c,w,l,v){const k=SK(p,c,w,l);inventory[k]=Math.max(0,parseInt(v)||0);pendingSync[k]=inventory[k];scheduleSync();refreshAll();}
 function adj(p,c,w,l,d){setStock(p,c,w,l,getStock(p,c,w,l)+d);}
 function toggleHidden(p,c,w,l){const k=HK(p,c,w,l);hiddenMap[k]=!hiddenMap[k];syncHidden();refreshAll();}
-function totalStockAll(){let t=0;PRODUCTS.forEach(p=>p.colors.forEach(c=>SIZES.forEach(s=>{t+=getStock(p.id,c.id,s.w,s.l);})));return t;}
-function colorTotal(pid,cid){let t=0;SIZES.forEach(s=>{if(!isHidden(pid,cid,s.w,s.l))t+=getStock(pid,cid,s.w,s.l);});return t;}
+function totalStockAll(){let t=0;PRODUCTS.forEach(p=>p.colors.forEach(c=>getSizes(p.id,c.id).forEach(s=>{t+=getStock(p.id,c.id,s.w,s.l);})));return t;}
+function colorTotal(pid,cid){let t=0;getSizes(pid,cid).forEach(s=>{if(!isHidden(pid,cid,s.w,s.l))t+=getStock(pid,cid,s.w,s.l);});return t;}
 function numDisplay(n,pid,cid,w,l){
   if(n>=10)return`<span class="size-over" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}+</span>`;
   const color=n===0?'#ccc':n===1?'var(--red)':n<=3?'#d4a017':'var(--green)';
@@ -340,7 +344,7 @@ function renderInventory(){
     ${prod.colors.map(color=>{
       const ck=`${prod.id}_${color.id}`,isOpen=!!openCards[ck],hm=!!hideModes[ck],total=colorTotal(prod.id,color.id);
       const rows=WAISTS.map(w=>{
-        const ls=SIZES.filter(s=>s.w===w),allHid=ls.every(s=>isHidden(prod.id,color.id,s.w,s.l));
+        const ls=getSizes(prod.id,color.id).filter(s=>s.w===w),allHid=ls.every(s=>isHidden(prod.id,color.id,s.w,s.l));
         return`<div class="waist-group${allHid?' all-hidden':''}">
           <div class="waist-header"><span class="waist-label">${w}</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
           ${ls.map(s=>{const n=getStock(prod.id,color.id,s.w,s.l),hid=isHidden(prod.id,color.id,s.w,s.l);
@@ -397,7 +401,7 @@ function renderStats(){
 
 function renderLowStock(){
   const items=[];
-  PRODUCTS.forEach(p=>p.colors.forEach(c=>SIZES.forEach(s=>{
+  PRODUCTS.forEach(p=>p.colors.forEach(c=>getSizes(p.id,c.id).forEach(s=>{
     if(isHidden(p.id,c.id,s.w,s.l))return;
     const n=getStock(p.id,c.id,s.w,s.l);
     if(n<=1)items.push({prod:p.name,color:c.name,lbl:`${s.w}-${s.l}`,w:s.w,l:s.l,n,pid:p.id,cid:c.id});
