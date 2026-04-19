@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dickies在庫">
+<title>Dickies 在庫管理</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  :root{
+    --bg:#f0f7ff;--surface:#fff;--surface2:#e8f2ff;--border:#c8ddf5;
+    --accent:#2a7fd4;--text:#1a2a3a;--text2:#7a90a8;
+    --red:#d94444;--green:#2e9e5b;
+    --h-from:#1e6db5;--h-to:#2589d8;--h-line:#7ec8f0;
+    --badge-bg:#7ec8f0;--badge-text:#0a3d6b;
+    --tab-active-bg:#fff;--tab-active-text:#1e6db5;
+    --section-border:#7ec8f0;--section-text:#1e6db5;--waist-bg:#f0f7ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;padding-bottom:env(safe-area-inset-bottom,20px);}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+  button{font-family:'Noto Sans JP',sans-serif;transition:transform 0.1s;}
+  button:active{transform:scale(0.88);}
+
+  #roomScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px;gap:0;background:var(--bg);}
+  .room-logo-img{width:200px;margin-bottom:16px;}
+  .room-sub{font-size:20px;font-weight:700;color:var(--h-from);margin-bottom:40px;letter-spacing:1px;}
+  .enter-btn{width:100%;max-width:360px;padding:18px;border-radius:14px;border:none;background:var(--h-from);color:#fff;font-size:17px;font-weight:700;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 14px rgba(0,0,0,0.15);}
+  .test-result{width:100%;max-width:360px;font-size:12px;padding:12px 14px;border-radius:10px;margin-top:12px;line-height:1.7;display:none;white-space:pre-wrap;}
+  .test-result.ok{display:block;background:#edfdf4;border:1px solid #a3e6c3;color:#1e7a46;}
+  .test-result.err{display:block;background:#fdf2f2;border:1px solid #f5b8b8;color:#c0392b;}
+
+  #appScreen{display:none;}
+  header{background:linear-gradient(135deg,var(--h-from) 0%,var(--h-to) 100%);border-bottom:3px solid var(--h-line);padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.15);}
+  .header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .header-logo{height:28px;border-radius:5px;background:#fff;padding:2px 7px;}
+  .header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .total-badge{background:var(--badge-bg);color:var(--badge-text);font-weight:700;font-size:13px;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+  .room-tag{font-size:11px;color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:3px 8px;white-space:nowrap;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background 0.3s;}
+  .last-update-bar{background:rgba(0,0,0,0.15);padding:3px 14px;font-size:11px;color:rgba(255,255,255,0.82);display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .tabs{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex-shrink:0;padding:6px 15px;border-radius:20px;font-size:13px;font-weight:500;background:rgba(255,255,255,0.18);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.25);cursor:pointer;}
+  .tab.active{background:var(--tab-active-bg);color:var(--tab-active-text);border-color:var(--tab-active-bg);font-weight:700;}
+  .theme-btn{font-size:11px;color:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:3px 8px;cursor:pointer;background:rgba(255,255,255,0.12);white-space:nowrap;flex-shrink:0;}
+
+  .content{padding:12px 12px 0;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--section-text);border-left:4px solid var(--section-border);padding-left:10px;margin-bottom:10px;}
+  .product-section{margin-bottom:24px;}
+  .color-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+  .color-header{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;cursor:pointer;user-select:none;}
+  .color-dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;}
+  .chevron{font-size:12px;color:var(--text2);transition:transform 0.2s;display:inline-block;}
+  .chevron.open{transform:rotate(180deg);}
+  .setting-bar{display:flex;justify-content:flex-end;padding:8px 14px;border-top:1px solid var(--border);}
+  .btn-setting{font-size:13px;padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;}
+  .btn-setting.active{background:#fff8e6;border-color:var(--section-border);color:var(--section-text);}
+  .waist-group{margin:8px 10px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+  .waist-label{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--section-text);opacity:0.85;}
+  .waist-header{display:flex;align-items:center;gap:8px;padding:7px 12px 5px;border-bottom:1px solid var(--border);background:var(--waist-bg);}
+  .size-row{display:flex;align-items:center;padding:10px 10px;gap:6px;border-bottom:1px solid var(--border);background:#fff;flex-wrap:nowrap;}
+  .size-row:last-child{border-bottom:none;}
+  .size-label{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--text);width:92px;flex-shrink:0;}
+  .size-num{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;width:52px;text-align:center;cursor:pointer;flex-shrink:0;border-radius:8px;padding:2px;}
+  .size-over{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;width:52px;text-align:center;cursor:pointer;flex-shrink:0;border-radius:8px;padding:2px;color:var(--section-text);}
+  .btn-group{display:flex;gap:5px;margin-left:auto;flex-shrink:0;}
+  .btn-sm{width:42px;height:42px;border:none;border-radius:10px;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .btn-plus10{height:42px;width:44px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#dbeafe;color:#1a6fb0;}
+  .btn-minus{background:#fdecea;color:var(--red);}
+  .btn-plus{background:#e8f8ef;color:var(--green);}
+  .eye-btn{display:none;width:42px;height:42px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:20px;cursor:pointer;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0;}
+  .hidden-size{display:none;}
+  .hide-mode .hidden-size{display:flex;opacity:0.32;}
+  .hide-mode .btn-group{display:none!important;}
+  .hide-mode .eye-btn{display:flex!important;}
+  .all-hidden{display:none;}
+  .hide-mode .all-hidden{display:block;}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;}
+  .stat-label{font-size:12px;color:var(--text2);margin-bottom:6px;}
+  .stat-value{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--section-text);line-height:1;}
+  .color-stat-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+  .color-stat-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;}
+  .low-item{background:var(--surface);border:1px solid #f5c0c0;border-left:4px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .low-badge{background:var(--red);color:#fff;font-weight:700;font-size:17px;padding:4px 14px;border-radius:20px;font-family:'Bebas Neue',sans-serif;}
+  .empty-msg{text-align:center;color:var(--text2);padding:60px 20px;font-size:16px;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 20px calc(30px + env(safe-area-inset-bottom,0px));width:100%;animation:slideUp 0.22s ease;}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--section-text);margin-bottom:14px;letter-spacing:1px;}
+  #quantityModal{border-top:3px solid var(--section-border);}
+  .modal-input{background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:44px;padding:14px;width:100%;font-family:'Bebas Neue',sans-serif;text-align:center;font-weight:700;margin-bottom:12px;outline:none;-webkit-appearance:none;}
+  .modal-input:focus{border-color:var(--accent);}
+  .modal-quick{display:flex;gap:8px;margin-bottom:14px;}
+  .modal-quick-btn{flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;font-weight:700;cursor:pointer;}
+  .modal-quick-btn.minus{background:#fdecea;border-color:#f5c0c0;color:var(--red);}
+  .modal-quick-btn.plus{background:#e8f8ef;border-color:#a3e6c3;color:var(--green);}
+  .modal-quick-btn.plus10{background:#dbeafe;border-color:#90cdf4;color:#1a6fb0;}
+  .modal-btns{display:flex;gap:10px;}
+  .modal-cancel{flex:1;padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:16px;cursor:pointer;}
+  .modal-save{flex:2;padding:16px;border-radius:12px;border:none;background:var(--h-from);color:#fff;font-size:16px;font-weight:700;cursor:pointer;}
+  .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .theme-card{border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;border:2px solid transparent;}
+  .theme-card.selected{border-color:#333;}
+  .theme-card-bar{height:8px;border-radius:4px;margin-bottom:8px;}
+  .theme-card-name{font-size:12px;font-weight:700;}
+  .theme-close{width:100%;padding:14px;border-radius:12px;border:1px solid #ddd;background:#f5f5f5;color:#555;font-size:15px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="roomScreen">
+  <img class="room-logo-img" src="data:image/webp;base64,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" alt="Dickies">
+  <div class="room-sub">在庫管理システム</div>
+  <button class="enter-btn" onclick="enterRoom()">入室する →</button>
+  <div class="test-result" id="testResult"></div>
+  <input type="hidden" id="fbUrlInput">
+  <input type="hidden" id="roomInput">
+</div>
+
+<div id="appScreen">
+  <header>
+    <div class="header-top">
+      <img class="header-logo" src="data:image/webp;base64,UklGRrAMAABXRUJQVlA4IKQMAACwPACdASqQAZ8APpVKn0wlpCKiJHeIeLASiWNu4XaxGj1My++w528Ab2iU21//v/UT+Xv/B7gH6Tf6HqVf130H/tb+4fvv+k3/OeoB/WfT99RPn6/Zy/uv/b/Yf2tM0r/u/oQ8RvzHiL5L/bPt/yj4mXbn+t8qv9L4W/CXJt/rPPz9l7cLU/ML9a/qH+v9TOZrkAcEJQA8SH/q/1PoA+ofYS/Xb/s9j4Ty/7izvlFL3FnfKKXuLO+UUvcWd8ope4s75RS9rJkfcIbZYfwFKKXuLO+UUvayR82V2yLJsu4MFJpDvoxN52GqnW89FRLrzzwYAYVzdEvcWd8ope4eBLaKx9d7ZTQEUqQd86L0QpvGG/6dzyvOlIlA19vaHa0giByVzTMUPIUQ5BsmUYBjjIo3bCil7izt7DsiJlO7Ap+djaaP7yyTyw2ZNk/DPv6ddXv0oTabN4DJQeZw3o8kmjI9p1QyjQ/Ul7/2HFxj7ZrCgbI145IbX8iK8nFDizvlFL3NE+YAlNGnvDVi0SoDRQM9hb3oPIFEgaRH8JcPt6d5LaW7qdefmb0r7orwEb2hT475RS9xZ3yQrid14RAsI/RrPk7qLUu9o3V8BeQktf4fIY7RLfa5aiHFnfMIFW+Wd8ope4s75RS9xZ3yil7TAAD+/8aAAABbsasoSguuzI1OVLDGAn4xpwNHJDhgzE60+e5VNzXEUToehA9ixW/Im4jDkdFr2qWPccsfeUsv9ZO3mKxE9bKuVE2gltyLwsLoZ/GkgqfFIdtLgPLrmGixhUiavOpL9MWPlnIcCsek/Pciol18OYRUB5uZOfrqs3QbsE2YiVW//g1aQShuiEJ0bnF51kvL6138pWxbOyc+F8a2Y0X50dIa2nt0Ir45tXwXqWButZXwkMv4flHkZvMy6dY1Gr/oAU6MuOxsx7T5nNLnrTUHZCVh5rOdPuwDfUppSCZ4Y0xufO2Y5goBYQlGOjyQ39ZPSDLOhCBr1V7bHa+POPVjByDlHbEEVjOYCz52BoGoZbgGea47LNohijl7jJhNwh7c9qkjqvoTls4GyHnkdx8SkVDC1ftn4QYL1jMjVdgRSMAP+8c86dBpOOrjDizZqBU9E+E5l2M86ry8Fvu/4EUkEEwMeCybuoyOgVsNgSzLpeXUymIxodw38mpd9N0oqBYlb5hV+WpxOAxYn1QTv1lfiAJUnqJqwNMywJM81mmZmm3yqwSCEbVAZOkEP+76ZHX1SbPYoI29UaaWkzCSlAARz+ExiXIxNnH+Tdl4zAd0I2lofNOhi1XtBJtmTXZt/5LT9W6Dn62HlWcZSwf6Dnhz6w9LElEu10eGcpA9iwIu0860UM7jNdypC2036UdZyJbMf7UMyRKsV14ak0MxT83ptSvV8wv7FZy+DmaZN+S8HmyZdqHPzxYmRw9MFvW6gpAGeNpGJXXVNQUQSCqBp4TQb5iY7v2aTKW9JEDwOX9ppWvdkcwbQvLrmYHxSy4tDPHtmkC1QbKmveF483nk8+rGo0JHOL16scdkLspIq1zrwDzBk/fYw8DpRNF1FBpAooX6RQCEDaWOJ8viv6SclZ09p0mkJvuf22gccBYAmTGLw28J554VoonvAivWDpwpt8YzRnScZfMYMhuWy/r0bKiE9Ch4eLA3VJ+0ZJ103KPJYrrsvtC2p6+pHMnbu78EM2NSiLfOzL7Lvm0QBhnxIhibTveyQ83H/UOUvVUjxWpPJ+1p0ZMCDsthUXjFzkKSXjtTPMHaHMJU3skOIi/MOFw9xkKc+F+RyghL96GadcTziPtAPdhEq58re6/an0Vu4pcZO82Mj3RHA7wUxTKUrjLXpfdtAXojKxmS97fGAaks0KuwBCypEKup1uBAMjz1DqQIUsqRa2paLZGRYR4zJGzq+TtfHc+5tdNpHXWnPuncrnQ/YWo35sc7zIHnOY/JJnvdtRPxSg1aVPsTLoSlJImCwVn63uXbPXSSUmq1f7EPMs7rou4YeEvIm+gJlPhwrf2dS7DmPCZjm4ogvVJmN3X7RCTiZVQ0aQ+lTOwNRygCPaGNoGc7rxBXUxe9Gi+/VxMSvInROs38ApqCKri8gA4LjXazTrChtFpEXoCOoAMtfSnokbOs3IRcDEfBaU/TynCCaX2GU5IQWyGOx1S6uVV8kQj8/Sn9ynm9N0w4Rf8z6+y3kUgi6L6M8AG5NGpx6Q6H9eSv4WCONzq8tmGb0mhbI/PbenfTurSxbNWDjUPuBlgHffKyVf91ZRfWpNhXXu0PKdEqYgLh6XK/xO0X8KErYvkdq42b9M7W8fJkrd1gstPZNSoP5bYAfURAA3H1g/dEOu7MGYB2Bz0onv1UI0tw12pPpXVCLI7nHC8DVICJIEybiFenX9gEl0uP5yh4jXLkDdo+IeeiO/TzPELGWJkqPHHJEW9FsT8ttakW81ci4KiOtCSqyURoN/Jd0oVAUMDLZ8pzIqIV66/A32EcawsvF9odEIPQsk/LN4mlzJUC0QG0OlDxBbWf0JxN/Mq1ytwJMlrslR1gH419Zk5863mTLWbjXdNzCY8p2ntGXdJ4JGnD1G1q3uGubfWQBixcpmMrS1GSLwc9LZOrJfJMheMKYNM/Wpee32gOsb0y3IQcB3y7/uQUg/XBnLUgTCxRZRSjPo37jvh7ekhN/b5PEtPefNS+G5uquWnF7+l+qNkGLfTjxwT3VtJZkeX2ZXvvM9lhsdKKC2N2UykUqDVULXa6nSOYBOqbkvPlVt/TUkd5vbiESNECPnYx2PXW/ogQqHEAaSYAsKyGdNH29/upz+FSDIHqXujmMXV6JccgKynbenc22XoIUukJsXjebt6KWlpM85fAoR786vwuiFbAM8N0IO+mvzNf1xfTLyKN3SeYfESBxnfhLaHGKBAwgkgyjaJ1g2TrmrHl25vxkpGzwofXPRG+K9AOvKJVhaoAc/KlUPh2p5e5znVjCdCfF2HteUyPoJPXGaF8FDum8wnjWiSJq2sAku4duXpX0W2021VwCzvheZaU+bYWGSPKxCBdtw3imNRoCGTC8B+9wSyIIARXZOMNXCFv8H6o/iRLRy+8VTutVqwgS52MesvOSZEtXXTyqnH4A1oBzDHziHPDBxt35V1cVnXc27V9Jgxmq4D+ex0ometYl582J6jaSDXJkBR0E7zH19ykzEAAPL1Psc6QgU1Hxbh17o9kfPhiHLHZYckA1HKGr8omnt9zgwSpJRStl4qp5UyWMVmwbUciLv8a5lB9NdlfVQcarGRiEjX/41xCSd77DO3UkHqXgmFfQS3jNiigHoviGmjzKDcMcsXBlWEci8GSDHX/E3LeqD/7yUIhD6zp/UbKdAPwQ/bGRsNgxdP6iC80XSs7hgkRFRmT+6TV71XgHeevTJZjVxfpgnMzGQpsqkrDr5VwdNI7hPJEJgZehuI4Ch84NQDPkq1GeS2aY3+4H1mHHhVWK71Z5nvIjbFXrj9wUROA31W9+qX1HQRK8jqYw+tSYz1SHw4EimPT0cB5mJgUS7VMu5VD6BRkFV0hZNsqpF2NRky99YkoX0DuqU0h33PqqHSXDf/fk1LuFMH/bmn/ku+7wIevJ67gd3MazmS3rYHTI4za6kUJLisyrdZN+NLJ7CnD7HnJT+U/NGRCcrtngwT9grnPDWr/N87EIlOVcgW+5UaiRGWL1ccAp1/HB6agBe4vJdC37KRfJM3vY+P923qfO5ID5zhxqY3ZghgBOWkqnlBXTBI5npxKPIEnG5OUKWCC3MFSD7qRZ0yYpiMh8PkuRya+1b4xYd4+p9P4PMPTBDa81XK/odBymp0b69pt71VPYz2+tvLxDkR+/Bg2g8w4pGFa94sNLognDE8qNlGLAvUch8oTdgAzawUO7P6Mizl8Zp97HXjcOmrBXMF1VnIqORBqou8wgM9A9XqFzLUAc6suj0a1FYpPlgNTt0wWw4Fa7QiN7ewVUh2IFVUmOJAacptHw9v2U7seW51YwlD6jHGl0UN2pwvrkg9K5FjzYzp/qRVFns/vgFhoV8I/qxbpvSLoDZrP65z0g4vfnxzdgz/57n17YN0wsswrfkh5JvViSYU1G0jj9Yyjw2QEkM5DscmzZUQQblk/4UXjYKQU4FVGiQXvYWJBeHT9oPVZNi7Jf0hsigOfmbflJTu/jGSe4E1y0+BZ4FTCOOF8lzwwtyh6ZER59uHmjVU6bpv8eZW4qTtfKcXg1YpHSl/uXuC9OH+9GSjFQmAIk5vbMP4ebmLzf2jR9cZjD6l1HakCg6PEqnlUFKccixpPugYvKk6mX3tqfjgDfHqpBJBASAR4EAAAAAAAAA==" alt="Dickies">
+      <div class="header-right">
+        <div id="syncDot" class="sync-dot" style="background:#aaa"></div>
+        <div class="total-badge" id="totalBadge">0点</div>
+        <div class="room-tag" id="roomTag">#MERCARI</div>
+        <button class="theme-btn" onclick="openThemeModal()">🎨</button>
+      </div>
+    </div>
+    <div class="last-update-bar">
+      <span>🕐 最終更新:</span>
+      <span id="lastUpdateText">—</span>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchView('inventory')">在庫一覧</div>
+      <div class="tab" onclick="switchView('stats')">サマリー</div>
+      <div class="tab" onclick="switchView('lowstock')">残少</div>
+    </div>
+  </header>
+  <div class="content" id="mainContent"></div>
+</div>
+
+<div class="modal-overlay" id="quantityOverlay" onclick="bgCloseQ(event)">
+  <div class="modal" id="quantityModal">
+    <div class="modal-title" id="modalTitle"></div>
+    <input class="modal-input" type="number" id="modalInput" min="0" max="999" inputmode="numeric">
+    <div class="modal-quick">
+      <button class="modal-quick-btn minus"  onclick="modalAdj(-1)">−1</button>
+      <button class="modal-quick-btn plus"   onclick="modalAdj(+1)">+1</button>
+      <button class="modal-quick-btn plus10" onclick="modalAdj(+10)">+10</button>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-save"   onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="themeOverlay" onclick="bgCloseT(event)">
+  <div class="modal">
+    <div class="modal-title">🎨 テーマを選択</div>
+    <div class="theme-grid" id="themeGrid"></div>
+    <button class="theme-close" onclick="closeThemeModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+const THEMES=[
+  {id:'sky',name:'スカイ',vars:{'--bg':'#f0f7ff','--surface':'#fff','--surface2':'#e8f2ff','--border':'#c8ddf5','--accent':'#2a7fd4','--text':'#1a2a3a','--text2':'#7a90a8','--h-from':'#1e6db5','--h-to':'#2589d8','--h-line':'#7ec8f0','--badge-bg':'#7ec8f0','--badge-text':'#0a3d6b','--tab-active-bg':'#fff','--tab-active-text':'#1e6db5','--section-border':'#7ec8f0','--section-text':'#1e6db5','--waist-bg':'#f0f7ff'},bar:'linear-gradient(90deg,#1e6db5,#7ec8f0)'},
+  {id:'forest',name:'フォレスト',vars:{'--bg':'#f0f7f0','--surface':'#fff','--surface2':'#e4f2e4','--border':'#b8d8b8','--accent':'#2a8a3a','--text':'#1a2a1a','--text2':'#6a8a6a','--h-from':'#2a6a2a','--h-to':'#3a9a4a','--h-line':'#7ec87e','--badge-bg':'#7ec87e','--badge-text':'#0a3a0a','--tab-active-bg':'#fff','--tab-active-text':'#2a6a2a','--section-border':'#7ec87e','--section-text':'#2a6a2a','--waist-bg':'#f0f7f0'},bar:'linear-gradient(90deg,#2a6a2a,#7ec87e)'},
+  {id:'wine',name:'ワイン',vars:{'--bg':'#fdf0f3','--surface':'#fff','--surface2':'#fae4ea','--border':'#e8b8c8','--accent':'#a02050','--text':'#2a0a14','--text2':'#9a6070','--h-from':'#8a1a40','--h-to':'#c0306a','--h-line':'#f0a0c0','--badge-bg':'#f0a0c0','--badge-text':'#5a0a28','--tab-active-bg':'#fff','--tab-active-text':'#8a1a40','--section-border':'#f0a0c0','--section-text':'#8a1a40','--waist-bg':'#fdf0f3'},bar:'linear-gradient(90deg,#8a1a40,#f0a0c0)'},
+  {id:'charcoal',name:'チャコール',vars:{'--bg':'#f2f2f2','--surface':'#fff','--surface2':'#e8e8e8','--border':'#d0d0d0','--accent':'#444','--text':'#1a1a1a','--text2':'#888','--h-from':'#2a2a2a','--h-to':'#555','--h-line':'#aaa','--badge-bg':'#aaa','--badge-text':'#111','--tab-active-bg':'#fff','--tab-active-text':'#2a2a2a','--section-border':'#aaa','--section-text':'#2a2a2a','--waist-bg':'#f2f2f2'},bar:'linear-gradient(90deg,#2a2a2a,#aaa)'},
+  {id:'sand',name:'サンド',vars:{'--bg':'#faf6ee','--surface':'#fff','--surface2':'#f2ead8','--border':'#ddd0b0','--accent':'#8a6920','--text':'#2a1e08','--text2':'#8a7858','--h-from':'#6b4e1a','--h-to':'#a07830','--h-line':'#d4a84a','--badge-bg':'#d4a84a','--badge-text':'#3a2008','--tab-active-bg':'#fff','--tab-active-text':'#6b4e1a','--section-border':'#d4a84a','--section-text':'#6b4e1a','--waist-bg':'#faf6ee'},bar:'linear-gradient(90deg,#6b4e1a,#d4a84a)'},
+  {id:'lavender',name:'ラベンダー',vars:{'--bg':'#f5f0ff','--surface':'#fff','--surface2':'#ede4ff','--border':'#d0b8f0','--accent':'#6a30c0','--text':'#1e0a3a','--text2':'#8070a8','--h-from':'#5a20a8','--h-to':'#8050d8','--h-line':'#c0a0f0','--badge-bg':'#c0a0f0','--badge-text':'#2a0a5a','--tab-active-bg':'#fff','--tab-active-text':'#5a20a8','--section-border':'#c0a0f0','--section-text':'#5a20a8','--waist-bg':'#f5f0ff'},bar:'linear-gradient(90deg,#5a20a8,#c0a0f0)'},
+];
+
+let currentThemeId=localStorage.getItem('dickies_theme')||'sky';
+
+function applyTheme(id){
+  const t=THEMES.find(x=>x.id===id)||THEMES[0];
+  const r=document.documentElement;
+  Object.entries(t.vars).forEach(([k,v])=>r.style.setProperty(k,v));
+  currentThemeId=id;
+  localStorage.setItem('dickies_theme',id);
+  renderThemeGrid();
+}
+function renderThemeGrid(){
+  const g=document.getElementById('themeGrid');
+  if(!g)return;
+  g.innerHTML=THEMES.map(t=>`
+    <div class="theme-card${t.id===currentThemeId?' selected':''}"
+      style="background:${t.vars['--surface2']};border-color:${t.id===currentThemeId?t.vars['--h-from']:'transparent'}"
+      onclick="applyTheme('${t.id}');closeThemeModal()">
+      <div class="theme-card-bar" style="background:${t.bar}"></div>
+      <div class="theme-card-name" style="color:${t.vars['--section-text']}">${t.name}</div>
+    </div>`).join('');
+}
+function openThemeModal(){renderThemeGrid();document.getElementById('themeOverlay').classList.add('open');}
+function closeThemeModal(){document.getElementById('themeOverlay').classList.remove('open');}
+function bgCloseT(e){if(e.target.id==='themeOverlay')closeThemeModal();}
+
+const PRODUCTS=[
+  {id:'dp874',name:'ディッキーズ 874',colors:[
+    {id:'black',name:'ブラック',dot:'#1c1c1c',border:'#555'},
+    {id:'beige',name:'ベージュ',dot:'#c8a97e',border:'#a07050'},
+    {id:'hgreen',name:'ハンターグリーン',dot:'#3a5a3a',border:'#5a8a5a'},
+    {id:'lgreen',name:'リンカーングリーン',dot:'#6b8c5a',border:'#8aad79'},
+    {id:'dbrown',name:'ダークブラウン',dot:'#4a2e1a',border:'#7a5a3a'},
+    {id:'white',name:'ホワイト',dot:'#e8e8e8',border:'#bbb'},
+  ]},
+  {id:'ddkn',name:'ディッキーズ ダブルニー',colors:[
+    {id:'black',name:'ブラック',dot:'#1c1c1c',border:'#555'},
+  ]}
+];
+const SIZES=[
+  {w:'W30',l:'L30'},{w:'W30',l:'L32'},{w:'W32',l:'L30'},{w:'W32',l:'L32'},
+  {w:'W33',l:'L30'},{w:'W33',l:'L32'},{w:'W34',l:'L30'},{w:'W34',l:'L32'},
+  {w:'W36',l:'L30'},{w:'W36',l:'L32'},{w:'W38',l:'L30'},{w:'W38',l:'L32'},
+];
+const WAISTS=['W30','W32','W33','W34','W36','W38'];
+
+let fbBase='',roomCode='',inventory={},hiddenMap={};
+let openCards={},hideModes={},modalData=null,currentView='inventory';
+let syncTimer=null,debounceTimer=null,pendingSync={},isSyncPending=false;
+
+function cleanUrl(u){return u.trim().replace(/\/+$/,'');}
+function setSyncState(s){
+  const d=document.getElementById('syncDot');if(!d)return;
+  const c={ok:'#52c97d',syncing:'#f0c040',err:'#e05252'}[s]||'#aaa';
+  d.style.background=c;d.style.boxShadow=s==='ok'?'0 0 5px #52c97d':'none';
+}
+function updateLastUpdateText(ts){
+  const el=document.getElementById('lastUpdateText');if(!el)return;
+  if(!ts){el.textContent='—';return;}
+  const d=new Date(ts),pad=n=>String(n).padStart(2,'0');
+  el.textContent=`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+async function fbFetch(path,opts){
+  const r=await fetch(`${fbBase}/${path}.json`,opts||{});
+  if(!r.ok){const b=await r.text().catch(()=>'');throw new Error(`HTTP ${r.status}: ${b}`);}
+  return r.json();
+}
+
+async function enterRoom(){
+  const url=cleanUrl(document.getElementById('fbUrlInput').value);
+  const code=document.getElementById('roomInput').value.trim();
+  const tr=document.getElementById('testResult');
+  if(!url||!code){tr.className='test-result err';tr.textContent='❌ 設定値が未入力です';return;}
+  fbBase=url;roomCode=code;
+  tr.className='test-result ok';tr.textContent='接続中…';
+  try{
+    const [inv,hid,meta]=await Promise.all([
+      fbFetch(`rooms/${roomCode}/inventory`).catch(()=>({})),
+      fbFetch(`rooms/${roomCode}/hidden`).catch(()=>({})),
+      fbFetch(`rooms/${roomCode}/meta`).catch(()=>(null))
+    ]);
+    inventory=inv||{};hiddenMap=hid||{};
+    localStorage.setItem('dickies_fb_url',url);
+    localStorage.setItem('dickies_room',roomCode);
+    document.getElementById('roomScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    document.getElementById('roomTag').textContent=`#${roomCode}`;
+    updateLastUpdateText(meta&&meta.updatedAt?meta.updatedAt:null);
+    openCards={};startPolling();refreshAll();setSyncState('ok');
+  }catch(e){
+    fbBase='';roomCode='';
+    tr.className='test-result err';tr.textContent=`❌ 接続失敗: ${e.message}`;
+  }
+}
+
+function startPolling(){
+  clearInterval(syncTimer);
+  syncTimer=setInterval(async()=>{
+    try{
+      const [inv,hid,meta]=await Promise.all([
+        fbFetch(`rooms/${roomCode}/inventory`).catch(()=>({})),
+        fbFetch(`rooms/${roomCode}/hidden`).catch(()=>({})),
+        fbFetch(`rooms/${roomCode}/meta`).catch(()=>(null))
+      ]);
+      if(!isSyncPending){inventory=inv||{};hiddenMap=hid||{};refreshAll();}
+      updateLastUpdateText(meta&&meta.updatedAt?meta.updatedAt:null);
+      setSyncState('ok');
+    }catch{setSyncState('err');}
+  },8000);
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&roomCode){
+      fbFetch(`rooms/${roomCode}/inventory`).then(inv=>{if(inv&&!isSyncPending){inventory=inv;refreshAll();}}).catch(()=>{});
+    }
+  },{once:false});
+}
+
+function scheduleSync(){
+  clearTimeout(debounceTimer);setSyncState('syncing');isSyncPending=true;
+  const patch={...pendingSync};pendingSync={};
+  debounceTimer=setTimeout(async()=>{
+    try{
+      const now=Date.now();
+      await Promise.all([
+        fbFetch(`rooms/${roomCode}/inventory`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}),
+        fbFetch(`rooms/${roomCode}/meta`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({updatedAt:now})})
+      ]);
+      updateLastUpdateText(now);setSyncState('ok');
+    }catch{setSyncState('err');}
+    finally{isSyncPending=false;}
+  },600);
+}
+
+async function syncHidden(){
+  try{await fbFetch(`rooms/${roomCode}/hidden`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(hiddenMap)});}catch{}
+}
+
+const SK=(p,c,w,l)=>`${p}__${c}__${w}__${l}`;
+const HK=(p,c,w,l)=>`hid__${p}__${c}__${w}__${l}`;
+const getStock=(p,c,w,l)=>parseInt(inventory[SK(p,c,w,l)]||0);
+const isHidden=(p,c,w,l)=>!!hiddenMap[HK(p,c,w,l)];
+
+function setStock(p,c,w,l,v){const k=SK(p,c,w,l);inventory[k]=Math.max(0,parseInt(v)||0);pendingSync[k]=inventory[k];scheduleSync();refreshAll();}
+function adj(p,c,w,l,d){setStock(p,c,w,l,getStock(p,c,w,l)+d);}
+function toggleHidden(p,c,w,l){const k=HK(p,c,w,l);hiddenMap[k]=!hiddenMap[k];syncHidden();refreshAll();}
+function totalStockAll(){let t=0;PRODUCTS.forEach(p=>p.colors.forEach(c=>SIZES.forEach(s=>{t+=getStock(p.id,c.id,s.w,s.l);})));return t;}
+function colorTotal(pid,cid){let t=0;SIZES.forEach(s=>{if(!isHidden(pid,cid,s.w,s.l))t+=getStock(pid,cid,s.w,s.l);});return t;}
+function numDisplay(n,pid,cid,w,l){
+  if(n>=10)return`<span class="size-over" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}+</span>`;
+  const color=n===0?'#ccc':n===1?'var(--red)':n<=3?'#d4a017':'var(--green)';
+  return`<span class="size-num" style="color:${color}" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}</span>`;
+}
+function refreshAll(){const b=document.getElementById('totalBadge');if(b)b.textContent=`合計 ${totalStockAll()}点`;renderContent();}
+function switchView(v){currentView=v;document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['inventory','stats','lowstock'][i]===v));renderContent();}
+function renderContent(){const el=document.getElementById('mainContent');if(!el)return;if(currentView==='inventory')el.innerHTML=renderInventory();else if(currentView==='stats')el.innerHTML=renderStats();else el.innerHTML=renderLowStock();}
+
+function renderInventory(){
+  return PRODUCTS.map(prod=>`<div class="product-section">
+    <div class="section-title">${prod.name}</div>
+    ${prod.colors.map(color=>{
+      const ck=`${prod.id}_${color.id}`,isOpen=!!openCards[ck],hm=!!hideModes[ck],total=colorTotal(prod.id,color.id);
+      const rows=WAISTS.map(w=>{
+        const ls=SIZES.filter(s=>s.w===w),allHid=ls.every(s=>isHidden(prod.id,color.id,s.w,s.l));
+        return`<div class="waist-group${allHid?' all-hidden':''}">
+          <div class="waist-header"><span class="waist-label">${w}</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+          ${ls.map(s=>{const n=getStock(prod.id,color.id,s.w,s.l),hid=isHidden(prod.id,color.id,s.w,s.l);
+            return`<div class="size-row${hid?' hidden-size':''}">
+              <span class="size-label">${s.w}-${s.l}</span>
+              ${numDisplay(n,prod.id,color.id,s.w,s.l)}
+              <div class="btn-group">
+                <button class="btn-sm btn-minus" onclick="adj('${prod.id}','${color.id}','${s.w}','${s.l}',-1)">−</button>
+                <button class="btn-sm btn-plus" onclick="adj('${prod.id}','${color.id}','${s.w}','${s.l}',+1)">＋</button>
+                <button class="btn-plus10" onclick="adj('${prod.id}','${color.id}','${s.w}','${s.l}',+10)">+10</button>
+              </div>
+              <button class="eye-btn" onclick="toggleHidden('${prod.id}','${color.id}','${s.w}','${s.l}')">${hid?'👁':'🙈'}</button>
+            </div>`;}).join('')}
+        </div>`;}).join('');
+      return`<div class="color-card">
+        <div class="color-header" onclick="toggleCard('${ck}')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="color-dot" style="background:${color.dot};border:1px solid ${color.border}"></div>
+            <span style="font-size:18px;font-weight:700">${color.name}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:15px;color:var(--text2)">${total}点</span>
+            <span class="chevron${isOpen?' open':''}">▼</span>
+          </div>
+        </div>
+        ${isOpen?`<div class="${hm?'hide-mode':''}">
+          <div class="setting-bar"><button class="btn-setting${hm?' active':''}" onclick="event.stopPropagation();toggleHideMode('${ck}')">${hm?'✅ 設定完了':'⚙ 非表示設定'}</button></div>
+          ${rows}<div style="height:8px"></div>
+        </div>`:''}
+      </div>`;}).join('')}
+  </div>`).join('');
+}
+
+function renderStats(){
+  const rows=[];let ta=0;
+  PRODUCTS.forEach(p=>p.colors.forEach(c=>{const t=colorTotal(p.id,c.id);ta+=t;rows.push({prod:p.name,color:c.name,dot:c.dot,border:c.border,total:t});}));
+  rows.sort((a,b)=>b.total-a.total);
+  const z=rows.filter(r=>r.total===0).length,lw=rows.filter(r=>r.total>0&&r.total<=3).length;
+  return`<div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">総在庫数</div><div class="stat-value">${ta}</div></div>
+    <div class="stat-card"><div class="stat-label">カラー数</div><div class="stat-value">${rows.length}</div></div>
+    <div class="stat-card"><div class="stat-label">在庫切れ</div><div class="stat-value" style="color:var(--red)">${z}</div></div>
+    <div class="stat-card"><div class="stat-label">残少(3点以下)</div><div class="stat-value">${lw}</div></div>
+  </div>
+  <div class="section-title" style="margin-bottom:10px">カラー別在庫</div>
+  ${rows.map(r=>`<div class="color-stat-row">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:18px;height:18px;border-radius:50%;background:${r.dot};border:1px solid ${r.border};flex-shrink:0"></div>
+      <div><div style="font-size:16px;font-weight:700">${r.color}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${r.prod}</div></div>
+    </div>
+    <div class="color-stat-num" style="color:${r.total===0?'var(--red)':r.total<=3?'#d4a017':'var(--green)'}">${r.total}</div>
+  </div>`).join('')}`;
+}
+
+function renderLowStock(){
+  const items=[];
+  PRODUCTS.forEach(p=>p.colors.forEach(c=>SIZES.forEach(s=>{
+    if(isHidden(p.id,c.id,s.w,s.l))return;
+    const n=getStock(p.id,c.id,s.w,s.l);
+    if(n<=1)items.push({prod:p.name,color:c.name,lbl:`${s.w}-${s.l}`,w:s.w,l:s.l,n,pid:p.id,cid:c.id});
+  })));
+  if(!items.length)return`<div class="empty-msg">✅ 在庫切れ・残少なし</div>`;
+  items.sort((a,b)=>a.n-b.n);
+  return`<div class="section-title" style="margin-bottom:4px">要補充リスト</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:10px;padding-left:4px">${items.length}件（0点・1点のみ）</div>
+  ${items.map(i=>`<div class="low-item" onclick="openModal('${i.pid}','${i.cid}','${i.w}','${i.l}','${i.color} ${i.lbl}')">
+    <div><div style="font-size:17px;font-weight:700">${i.color}</div><div style="font-size:14px;color:var(--text2);margin-top:3px">${i.prod} / ${i.lbl}</div></div>
+    <div class="low-badge">${i.n===0?'切れ':i.n+'点'}</div>
+  </div>`).join('')}`;
+}
+
+function toggleCard(k){openCards[k]=!openCards[k];renderContent();}
+function toggleHideMode(k){hideModes[k]=!hideModes[k];renderContent();}
+function openModal(p,c,w,l,label){
+  modalData={p,c,w,l};
+  document.getElementById('modalTitle').textContent=label;
+  document.getElementById('modalInput').value=getStock(p,c,w,l);
+  document.getElementById('quantityOverlay').classList.add('open');
+  setTimeout(()=>{const i=document.getElementById('modalInput');i.focus();i.select();},150);
+}
+function modalAdj(d){const i=document.getElementById('modalInput');i.value=Math.max(0,(parseInt(i.value)||0)+d);}
+function bgCloseQ(e){if(e.target.id==='quantityOverlay')closeModal();}
+function closeModal(){document.getElementById('quantityOverlay').classList.remove('open');modalData=null;}
+function saveModal(){if(!modalData)return;setStock(modalData.p,modalData.c,modalData.w,modalData.l,document.getElementById('modalInput').value);closeModal();}
+document.getElementById('modalInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveModal();});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // URL・部屋コードはHTMLに固定（どの端末でも自動入力）
+  document.getElementById('fbUrlInput').value='https://dickies874-61fea-default-rtdb.asia-southeast1.firebasedatabase.app';
+  document.getElementById('roomInput').value='MERCARI';
+  applyTheme(currentThemeId);
+});
+</script>
+</body>
+</html>
