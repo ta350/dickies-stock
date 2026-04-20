@@ -292,17 +292,20 @@ function startPolling(){
       setSyncState('ok');
     }catch{setSyncState('err');}
   },8000);
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden&&roomCode){
-      fbFetch(`rooms/${roomCode}/inventory`).then(inv=>{if(inv&&!isSyncPending){inventory=inv;refreshAll();}}).catch(()=>{});
-    }
-  },{once:false});
+  if(!startPolling._visHandler){
+    startPolling._visHandler=()=>{
+      if(!document.hidden&&roomCode){
+        fbFetch(`rooms/${roomCode}/inventory`).then(inv=>{if(inv&&!isSyncPending){inventory=inv;refreshAll();}}).catch(()=>{});
+      }
+    };
+    document.addEventListener('visibilitychange',startPolling._visHandler);
+  }
 }
 
 function scheduleSync(){
   clearTimeout(debounceTimer);setSyncState('syncing');isSyncPending=true;
-  const patch={...pendingSync};pendingSync={};
   debounceTimer=setTimeout(async()=>{
+    const patch={...pendingSync};pendingSync={};
     try{
       const now=Date.now();
       await Promise.all([
@@ -327,10 +330,10 @@ const isHidden=(p,c,w,l)=>!!hiddenMap[HK(p,c,w,l)];
 function setStock(p,c,w,l,v){const k=SK(p,c,w,l);inventory[k]=Math.max(0,parseInt(v)||0);pendingSync[k]=inventory[k];scheduleSync();refreshAll();}
 function adj(p,c,w,l,d){setStock(p,c,w,l,getStock(p,c,w,l)+d);}
 function toggleHidden(p,c,w,l){const k=HK(p,c,w,l);hiddenMap[k]=!hiddenMap[k];syncHidden();refreshAll();}
-function totalStockAll(){let t=0;PRODUCTS.forEach(p=>p.colors.forEach(c=>getSizes(p.id,c.id).forEach(s=>{t+=getStock(p.id,c.id,s.w,s.l);})));return t;}
+function totalStockAll(){let t=0;PRODUCTS.forEach(p=>p.colors.forEach(c=>getSizes(p.id,c.id).forEach(s=>{if(!isHidden(p.id,c.id,s.w,s.l))t+=getStock(p.id,c.id,s.w,s.l);})));return t;}
 function colorTotal(pid,cid){let t=0;getSizes(pid,cid).forEach(s=>{if(!isHidden(pid,cid,s.w,s.l))t+=getStock(pid,cid,s.w,s.l);});return t;}
 function numDisplay(n,pid,cid,w,l){
-  if(n>=10)return`<span class="size-over" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}+</span>`;
+  if(n>10)return`<span class="size-over" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}+</span>`;
   const color=n===0?'#ccc':n===1?'var(--red)':n<=3?'#d4a017':'var(--green)';
   return`<span class="size-num" style="color:${color}" onclick="openModal('${pid}','${cid}','${w}','${l}','${w}-${l}')">${n}</span>`;
 }
